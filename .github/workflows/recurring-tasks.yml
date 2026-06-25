@@ -20,7 +20,7 @@ steps:
 
   - run: npm install
 
-  - run: node recurring-tasks.js
+  - run: node recurring-tasks/recurring-tasks.js
     env:
       NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
       TASKS_DB_ID: ${{ secrets.TASKS_DB_ID }}
