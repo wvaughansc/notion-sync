@@ -6,6 +6,7 @@ auth: process.env.NOTION_TOKEN,
 
 const TASKS_DB_ID = process.env.TASKS_DB_ID;
 
+// Get today's date
 const today = new Date();
 
 const yyyy = today.getFullYear();
@@ -14,95 +15,225 @@ const dd = String(today.getDate()).padStart(2, "0");
 
 const todayDate = `${yyyy}-${mm}-${dd}`;
 
-const dayOfWeek = today.getDay(); // 0=Sun,1=Mon...
+const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, 2=Tue...
 const dayOfMonth = today.getDate();
 
 const tasksToCreate = [];
 
-function addTask(name, time = null) {
+/**
+
+* Add a task to today's queue
+  */
+  function addTask({
+  taskName,
+  area,
+  priority,
+  status = "Not Started",
+  time = null,
+  }) {
+  const dueDate = time
+  ? `${todayDate}T${time}:00`
+  : todayDate;
+
 tasksToCreate.push({
-name,
-time,
+taskName,
+area,
+priority,
+status,
+dueDate,
 });
 }
 
-// DAILY
-addTask("Feed Dogs", "08:00");
+| /*                                                                         |
+| -------------------------------------------------------------------------- |
+| DAILY TASKS                                                                |
+| -------------------------------------------------------------------------- |
+| */                                                                         |
 
-// WEEKDAYS
+addTask({
+taskName: "Feed Dogs",
+area: "Personal",
+priority: "High",
+time: "08:00",
+});
+
+| /*                                                                         |
+| -------------------------------------------------------------------------- |
+| WEEKDAY TASKS                                                              |
+| -------------------------------------------------------------------------- |
+| */                                                                         |
+
 if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-addTask("Water Grass", "08:00");
+addTask({
+taskName: "Water Grass",
+area: "Personal",
+priority: "Medium",
+time: "08:00",
+});
 }
 
-// MONDAY
+| /*                                                                         |
+| -------------------------------------------------------------------------- |
+| MONDAY TASKS                                                               |
+| -------------------------------------------------------------------------- |
+| */                                                                         |
+
 if (dayOfWeek === 1) {
-addTask("Timesheet", "09:00");
-addTask("Trash Pickup", "21:00");
+addTask({
+taskName: "Timesheet",
+area: "QA",
+priority: "High",
+time: "09:00",
+});
+
+addTask({
+taskName: "Trash Pickup",
+area: "Personal",
+priority: "Medium",
+time: "21:00",
+});
 }
 
-// THURSDAY
+| /*                                                                         |
+| -------------------------------------------------------------------------- |
+| THURSDAY TASKS                                                             |
+| -------------------------------------------------------------------------- |
+| */                                                                         |
+
 if (dayOfWeek === 4) {
-addTask("Split Songs", "14:00");
+addTask({
+taskName: "Split Songs",
+area: "Church",
+priority: "High",
+time: "14:00",
+});
 }
 
-// FRIDAY
+| /*                                                                         |
+| -------------------------------------------------------------------------- |
+| FRIDAY TASKS                                                               |
+| -------------------------------------------------------------------------- |
+| */                                                                         |
+
 if (dayOfWeek === 5) {
-addTask("Update PCO Notes", "14:00");
+addTask({
+taskName: "Update PCO Notes",
+area: "Church",
+priority: "Medium",
+time: "14:00",
+});
 }
 
-// MONTHLY
+| /*                                                                         |
+| -------------------------------------------------------------------------- |
+| MONTHLY TASKS                                                              |
+| -------------------------------------------------------------------------- |
+| */                                                                         |
+
 if (dayOfMonth === 15) {
-addTask("Send Blockout Email");
+addTask({
+taskName: "Send Blockout Email",
+area: "QA",
+priority: "High",
+});
 }
 
 if (dayOfMonth === 16) {
-addTask("Greer Schedule");
+addTask({
+taskName: "Greer Schedule",
+area: "QA",
+priority: "High",
+});
 }
 
-// QUARTERLY
+| /*                                                                         |
+| -------------------------------------------------------------------------- |
+| QUARTERLY TASKS                                                            |
+| -------------------------------------------------------------------------- |
+|                                                                            |
+| January 1                                                                  |
+| April 1                                                                    |
+| July 1                                                                     |
+| October 1                                                                  |
+|                                                                            |
+| */                                                                         |
+
 if (
 dayOfMonth === 1 &&
 [1, 4, 7, 10].includes(today.getMonth() + 1)
 ) {
-addTask("Change Air Filters");
+addTask({
+taskName: "Change Air Filters",
+area: "Personal",
+priority: "Medium",
+});
 }
 
-async function createTask(task) {
-const dueDate = task.time
-? `${todayDate}T${task.time}:00`
-: todayDate;
+| /*                                                                         |
+| -------------------------------------------------------------------------- |
+| CREATE TASKS                                                               |
+| -------------------------------------------------------------------------- |
+| */                                                                         |
 
+async function createTask(task) {
 await notion.pages.create({
 parent: {
 database_id: TASKS_DB_ID,
 },
 properties: {
-Name: {
+Tasks: {
 title: [
 {
 text: {
-content: task.name,
+content: task.taskName,
 },
 },
 ],
 },
-"Due Date": {
-date: {
-start: dueDate,
+
+```
+  Status: {
+    status: {
+      name: task.status,
+    },
+  },
+
+  Priority: {
+    select: {
+      name: task.priority,
+    },
+  },
+
+  Area: {
+    select: {
+      name: task.area,
+    },
+  },
+
+  "Due Date": {
+    date: {
+      start: task.dueDate,
+    },
+  },
 },
-},
-},
+```
+
 });
 
-console.log(`Created: ${task.name}`);
+console.log(`✅ Created: ${task.taskName}`);
 }
 
 async function run() {
-console.log(`Creating ${tasksToCreate.length} tasks`);
+console.log(`Creating ${tasksToCreate.length} recurring task(s)...`);
 
 for (const task of tasksToCreate) {
 await createTask(task);
 }
+
+console.log("Done.");
 }
 
-run();
+run().catch((error) => {
+console.error(error);
+process.exit(1);
+});
