@@ -51,7 +51,7 @@ dueDate,
 | */                                                                         
 
 addTask({
-taskName: "Feed Dogs1",
+taskName: "Feed Dogs",
 area: "Personal",
 priority: "High",
 time: "08:00",
@@ -65,7 +65,7 @@ time: "08:00",
 
 if (dayOfWeek >= 1 && dayOfWeek <= 5) {
 addTask({
-taskName: "Water Grass1",
+taskName: "Water Grass",
 area: "Personal",
 priority: "Medium",
 time: "08:00",
@@ -80,14 +80,14 @@ time: "08:00",
 
 if (dayOfWeek === 1) {
 addTask({
-taskName: "Timesheet1",
+taskName: "Timesheet",
 area: "QA",
 priority: "High",
 time: "09:00",
 });
 
 addTask({
-taskName: "Trash Pickup1",
+taskName: "Trash Pickup",
 area: "Personal",
 priority: "Medium",
 time: "21:00",
@@ -102,7 +102,7 @@ time: "21:00",
 
 if (dayOfWeek === 4) {
 addTask({
-taskName: "Split Songs1",
+taskName: "Split Songs",
 area: "Church",
 priority: "High",
 time: "14:00",
@@ -117,7 +117,7 @@ time: "14:00",
 
 if (dayOfWeek === 5) {
 addTask({
-taskName: "Update PCO Notes1",
+taskName: "Update PCO Notes",
 area: "Church",
 priority: "Medium",
 time: "14:00",
@@ -132,7 +132,7 @@ time: "14:00",
 
 if (dayOfMonth === 15) {
 addTask({
-taskName: "Send Blockout Email1",
+taskName: "Send Blockout Email",
 area: "QA",
 priority: "High",
 });
@@ -140,7 +140,7 @@ priority: "High",
 
 if (dayOfMonth === 16) {
 addTask({
-taskName: "Greer Schedule1",
+taskName: "Greer Schedule",
 area: "QA",
 priority: "High",
 });
@@ -163,7 +163,7 @@ dayOfMonth === 1 &&
 [1, 4, 7, 10].includes(today.getMonth() + 1)
 ) {
 addTask({
-taskName: "Change Air Filters1",
+taskName: "Change Air Filters",
 area: "Personal",
 priority: "Medium",
 });
