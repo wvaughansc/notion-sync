@@ -224,9 +224,9 @@ async function createTask(task) {
 }
 
 async function run() {
-  console.log(`Creating ${recurringTasks.length} recurring task(s)...`);
+  console.log(`Creating ${tasksToCreate.length} recurring task(s)...`);
   
-  for (const task of recurringTasks) {
+  for (const task of tasksToCreate) {
     console.log(`\nProcessing task:`, task); // Add this
     await createTask(task);
   }
