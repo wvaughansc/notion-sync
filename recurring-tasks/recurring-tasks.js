@@ -176,51 +176,49 @@ priority: "Medium",
 | */                                                                         
 
 async function createTask(task) {
-await notion.pages.create({
-parent: {
-database_id: TASKS_DB_ID,
-},
-properties: {
-Tasks: {
-title: [
-{
-text: {
-content: task.taskName,
-},
-},
-],
-},
-
-
-  Status: {
-    status: {
-      name: task.status,
-    },
-  },
-
-  Priority: {
-    select: {
-      name: task.priority,
-    },
-  },
-
-  Area: {
-    select: {
-      name: task.area,
-    },
-  },
-
-  "Due Date": {
-    date: {
-      start: task.dueDate,
-    },
-  },
-},
-
-
-});
-
-console.log(`✅ Created: ${task.taskName}`);
+  try {
+    await notion.pages.create({
+      parent: {
+        database_id: TASKS_DB_ID,
+      },
+      properties: {
+        Tasks: {
+          title: [
+            {
+              text: {
+                content: task.taskName,
+              },
+            },
+          ],
+        },
+        Status: {
+          status: {
+            name: task.status,
+          },
+        },
+        Priority: {
+          select: {
+            name: task.priority,
+          },
+        },
+        Area: {
+          select: {
+            name: task.area,
+          },
+        },
+        "Due Date": {
+          date: {
+            start: task.dueDate,
+          },
+        },
+      },
+    });
+    console.log(`✅ Created: ${task.taskName}`);
+    // Wait 1 second between task creations to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  } catch (error) {
+    console.error(`❌ Failed to create ${task.taskName}:`, error.message);
+  }
 }
 
 async function run() {
