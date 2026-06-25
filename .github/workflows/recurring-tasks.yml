@@ -17,5 +17,5 @@ jobs:
       - run: node recurring-tasks.js
         working-directory: recurring-tasks
         env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_TOKEN: ${{ secrets.TASKS_NOTION_TOKEN }}
           TASKS_DB_ID: ${{ secrets.TASKS_DB_ID }}
