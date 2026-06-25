@@ -28,7 +28,7 @@ const tasksToCreate = [];
   taskName,
   area,
   priority,
-  status = "Not Started",
+  status = "Not Done",
   time = null,
   }) {
   const dueDate = time
