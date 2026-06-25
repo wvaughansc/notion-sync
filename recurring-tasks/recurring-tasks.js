@@ -213,9 +213,10 @@ async function createTask(task) {
         },
       },
     });
+    console.log(`Attempting to create task with data:`, JSON.stringify(task, null, 2));
     console.log(`✅ Created: ${task.taskName}`);
     // Wait 1 second between task creations to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
   } catch (error) {
     console.error(`❌ Failed to create ${task.taskName}:`, error.message);
   }
