@@ -176,6 +176,7 @@ priority: "Medium",
 | */                                                                         
 
 async function createTask(task) {
+ console.log(`Attempting to create task with data:`, JSON.stringify(task, null, 2));
   try {
     await notion.pages.create({
       parent: {
@@ -223,13 +224,14 @@ async function createTask(task) {
 }
 
 async function run() {
-console.log(`Creating ${tasksToCreate.length} recurring task(s)...`);
-
-for (const task of tasksToCreate) {
-await createTask(task);
-}
-
-console.log("Done.");
+  console.log(`Creating ${recurringTasks.length} recurring task(s)...`);
+  
+  for (const task of recurringTasks) {
+    console.log(`\nProcessing task:`, task); // Add this
+    await createTask(task);
+  }
+  
+  console.log("Done.");
 }
 
 run().catch((error) => {
