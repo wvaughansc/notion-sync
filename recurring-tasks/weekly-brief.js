@@ -365,6 +365,17 @@ async function buildWeeklyBrief() {
     `Week range: ${weekStart.toDateString()} - ${weekEnd.toDateString()}`
   );
 
+  // Format for logging
+  const formatLocalDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+  console.log(
+    `Querying for dates: ${formatLocalDate(weekStart)} to ${formatLocalDate(weekEnd)}`
+  );
+
   try {
     // Query all databases
     console.log("Querying databases...");
