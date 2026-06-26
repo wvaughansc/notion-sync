@@ -13,7 +13,7 @@ jobs:
         with:
           node-version: "18"
       - run: npm install
-      - run: node weekly-brief.js
+      - run: node recurring-tasks/weekly-brief.js
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           CALENDAR_DB_ID: ${{ secrets.CALENDAR_DB_ID }}
