@@ -174,7 +174,9 @@ function buildBriefBlocks(allItems, weekStart) {
       rich_text: [
         {
           type: "text",
-          text: `Weekly Brief: ${dateRange}`,
+          text: {
+            content: `Weekly Brief: ${dateRange}`,
+          },
         },
       ],
     },
@@ -226,10 +228,12 @@ function buildBriefBlocks(allItems, weekStart) {
           rich_text: [
             {
               type: "text",
-              text: `${dayName}, ${dayDate.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              })}`,
+              text: {
+                content: `${dayName}, ${dayDate.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })}`,
+              },
             },
           ],
         },
@@ -245,7 +249,9 @@ function buildBriefBlocks(allItems, weekStart) {
             rich_text: [
               {
                 type: "text",
-                text: source,
+                text: {
+                  content: source,
+                },
               },
             ],
           },
@@ -260,8 +266,10 @@ function buildBriefBlocks(allItems, weekStart) {
               rich_text: [
                 {
                   type: "text",
-                  text: item.title,
-                  href: item.url,
+                  text: {
+                    content: item.title,
+                    link: item.url ? { url: item.url } : null,
+                  },
                 },
               ],
             },
