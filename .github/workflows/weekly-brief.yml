@@ -14,8 +14,6 @@ jobs:
         with:
           node-version: "18"
       - run: npm install
-      - run: node recurring-tasks/test-token.js
-      - run: echo "Token length is ${#NOTION_TOKEN}"
         env:
           NOTION_TOKEN: ${{ secrets.BRIEF_NOTION_TOKEN }}
       - run: node recurring-tasks/weekly-brief.js
@@ -31,3 +29,6 @@ jobs:
           PROJECTS_DB_ID: ${{ secrets.PROJECTS_DB_ID }}
           HOUSE_PROJECTS_DB_ID: ${{ secrets.HOUSE_PROJECTS_DB_ID }}
           BRIEF_PAGE_ID: ${{ secrets.BRIEF_PAGE_ID }}
+      - run: node recurring-tasks/test-token.js
+      - run: echo "Token length is ${#NOTION_TOKEN}"
+          
