@@ -2,6 +2,7 @@ name: Weekly Brief
 on:
   schedule:
     - cron: "0 12 * * 0" # Every Sunday at 12 PM UTC (7 AM EST)
+  workflow_dispatch:
 
 jobs:
   build:
