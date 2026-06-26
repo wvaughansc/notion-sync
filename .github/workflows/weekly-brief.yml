@@ -7,15 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
-- run: npm install
-      - run: echo "Token length is ${#NOTION_TOKEN}"
-        env:
-          NOTION_TOKEN: ${{ secrets.BRIEF_NOTION_TOKEN }}
-      - run: node recurring-tasks/weekly-brief.js
-        env:
-          NOTION_TOKEN: ${{ secrets.BRIEF_NOTION_TOKEN }}
-          # ... rest of your env vars
     
     steps:
       - uses: actions/checkout@v3
@@ -23,6 +14,13 @@ jobs:
         with:
           node-version: "18"
       - run: npm install
+      - run: echo "Token length is ${#NOTION_TOKEN}"
+        env:
+          NOTION_TOKEN: ${{ secrets.BRIEF_NOTION_TOKEN }}
+      - run: node recurring-tasks/weekly-brief.js
+        env:
+          NOTION_TOKEN: ${{ secrets.BRIEF_NOTION_TOKEN }}
+          # ... rest of your env vars
       - run: node recurring-tasks/weekly-brief.js
         env:
           NOTION_TOKEN: ${{ secrets.BRIEF_NOTION_TOKEN }}
