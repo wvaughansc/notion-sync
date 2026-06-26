@@ -93,7 +93,7 @@ function getPageTitle(page) {
   const props = page.properties;
 
   // Try common title properties in order
-  for (const key of ["Name", "Title", "Task"]) {
+  for (const key of ["Name", "Title", "Task", "Tasks"]) {
     if (props[key] && props[key].title && props[key].title.length > 0) {
       return props[key].title.map((t) => t.plain_text).join("");
     }
@@ -114,9 +114,30 @@ function getPageTitle(page) {
 }
 
 /**
+ * Check if a task is completed
+ */
+function isTaskCompleted(page) {
+  const props = page.properties;
+
+  // Check for common status properties
+  for (const key of ["Status", "Done", "Completed"]) {
+    if (props[key]) {
+      const prop = props[key];
+      if (prop.type === "status") {
+        return prop.status?.name === "Done";
+      } else if (prop.type === "checkbox") {
+        return prop.checkbox === true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
  * Organize items by day of week
  */
-function organizeByDay(items, dateProperty) {
+function organizeByDay(items, dateProperty, filterCompleted = false) {
   const dayMap = {
     0: { name: "Sunday", items: [] },
     1: { name: "Monday", items: [] },
@@ -128,6 +149,11 @@ function organizeByDay(items, dateProperty) {
   };
 
   items.forEach((item) => {
+    // Skip completed tasks if filtering
+    if (filterCompleted && isTaskCompleted(item)) {
+      return;
+    }
+
     const dateValue = item.properties[dateProperty];
     const date = extractDate(dateValue);
 
@@ -409,11 +435,11 @@ async function buildWeeklyBrief() {
     // Organize by day
     console.log("Organizing by day...");
     const allItems = {
-      Calendar: organizeByDay(calendarItems, "Date"),
-      Tasks: organizeByDay(taskItems, "Due Date"),
-      Services: organizeByDay(servicesItems, "Date"),
-      Projects: organizeByDay(projectItems, "Due Date"),
-      "House Projects": organizeByDay(houseProjectItems, "Due Date"),
+      Calendar: organizeByDay(calendarItems, "Date", false),
+      Tasks: organizeByDay(taskItems, "Due Date", true),
+      Services: organizeByDay(servicesItems, "Date", false),
+      Projects: organizeByDay(projectItems, "Due Date", false),
+      "House Projects": organizeByDay(houseProjectItems, "Planned Date", false),
     };
 
     // Build blocks
