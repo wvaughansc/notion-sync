@@ -15,7 +15,7 @@ jobs:
       - run: npm install
       - run: node recurring-tasks/weekly-brief.js
         env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_TOKEN: ${{ secrets.BRIEF_NOTION_TOKEN }}
           CALENDAR_DB_ID: ${{ secrets.CALENDAR_DB_ID }}
           TASKS_DB_ID: ${{ secrets.TASKS_DB_ID }}
           SERVICES_EVENTS_DB_ID: ${{ secrets.SERVICES_EVENTS_DB_ID }}
