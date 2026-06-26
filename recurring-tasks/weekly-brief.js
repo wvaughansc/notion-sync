@@ -327,45 +327,76 @@ async function buildWeeklyBrief() {
     // Query all databases
     console.log("Querying databases...");
 
-    const calendarItems = await queryDatabaseByDateRange(
-      CALENDAR_DB_ID,
-      "Date",
-      weekStart,
-      weekEnd
-    );
-    console.log(`Found ${calendarItems.length} calendar items`);
+    let calendarItems = [];
+    let taskItems = [];
+    let servicesItems = [];
+    let projectItems = [];
+    let houseProjectItems = [];
 
-    const taskItems = await queryDatabaseByDateRange(
-      TASKS_DB_ID,
-      "Due Date",
-      weekStart,
-      weekEnd
-    );
-    console.log(`Found ${taskItems.length} task items`);
+    // Query Calendar DB
+    try {
+      calendarItems = await queryDatabaseByDateRange(
+        CALENDAR_DB_ID,
+        "Date",
+        weekStart,
+        weekEnd
+      );
+      console.log(`Found ${calendarItems.length} calendar items`);
+    } catch (error) {
+      console.error("Failed to query Calendar DB:", error.message);
+    }
 
-    const servicesItems = await queryDatabaseByDateRange(
-      SERVICES_EVENTS_DB_ID,
-      "Date",
-      weekStart,
-      weekEnd
-    );
-    console.log(`Found ${servicesItems.length} services/events items`);
+    // Query Tasks DB
+    try {
+      taskItems = await queryDatabaseByDateRange(
+        TASKS_DB_ID,
+        "Due Date",
+        weekStart,
+        weekEnd
+      );
+      console.log(`Found ${taskItems.length} task items`);
+    } catch (error) {
+      console.error("Failed to query Tasks DB:", error.message);
+    }
 
-    const projectItems = await queryDatabaseByDateRange(
-      PROJECTS_DB_ID,
-      "Due Date",
-      weekStart,
-      weekEnd
-    );
-    console.log(`Found ${projectItems.length} project items`);
+    // Query Services/Events DB
+    try {
+      servicesItems = await queryDatabaseByDateRange(
+        SERVICES_EVENTS_DB_ID,
+        "Date",
+        weekStart,
+        weekEnd
+      );
+      console.log(`Found ${servicesItems.length} services/events items`);
+    } catch (error) {
+      console.error("Failed to query Services/Events DB:", error.message);
+    }
 
-    const houseProjectItems = await queryDatabaseByDateRange(
-      HOUSE_PROJECTS_DB_ID,
-      "Planned Date",
-      weekStart,
-      weekEnd
-    );
-    console.log(`Found ${houseProjectItems.length} house project items`);
+    // Query Projects DB
+    try {
+      projectItems = await queryDatabaseByDateRange(
+        PROJECTS_DB_ID,
+        "Due Date",
+        weekStart,
+        weekEnd
+      );
+      console.log(`Found ${projectItems.length} project items`);
+    } catch (error) {
+      console.error("Failed to query Projects DB:", error.message);
+    }
+
+    // Query House Projects DB
+    try {
+      houseProjectItems = await queryDatabaseByDateRange(
+        HOUSE_PROJECTS_DB_ID,
+        "Planned Date",
+        weekStart,
+        weekEnd
+      );
+      console.log(`Found ${houseProjectItems.length} house project items`);
+    } catch (error) {
+      console.error("Failed to query House Projects DB:", error.message);
+    }
 
     // Organize by day
     console.log("Organizing by day...");
