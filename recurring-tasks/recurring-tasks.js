@@ -15,16 +15,8 @@ const dd = String(today.getDate()).padStart(2, "0");
 
 const todayDate = `${yyyy}-${mm}-${dd}`;
 
-// Get timezone offset (EDT/EST)
-function getTimeZoneOffset() {
-  const offset = -today.getTimezoneOffset(); // in minutes
-  const hours = Math.floor(Math.abs(offset) / 60);
-  const minutes = Math.abs(offset) % 60;
-  const sign = offset >= 0 ? '+' : '-';
-  return `${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-}
-
-const tzOffset = getTimeZoneOffset();
+// EDT offset (UTC-4) - adjust to -05:00 for EST if needed
+const tzOffset = "-04:00";
 
 const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, 2=Tue...
 const dayOfMonth = today.getDate();
@@ -52,7 +44,6 @@ area,
 priority,
 status,
 dueDate,
-hasTime: time !== null,
 });
 }
 
@@ -221,15 +212,6 @@ async function createTask(task) {
         },
       },
     };
-
-    // Only add Remind field if the task has a specific time
-    if (task.hasTime) {
-      properties.Remind = {
-        select: {
-          name: "At time of event",
-        },
-      };
-    }
 
     await notion.pages.create({
       parent: {
