@@ -1,6 +1,6 @@
 import { Client } from "@notionhq/client";
 
-const notion = new Client({ auth: process.env.BRIEF_NOTION_TOKEN });
+const notion = new Client({ auth: process.env.NOTION_TOKEN });
 
 // Database IDs from environment
 const CALENDAR_DB_ID = process.env.CALENDAR_DB_ID;
