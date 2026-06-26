@@ -10,6 +10,15 @@ const PROJECTS_DB_ID = process.env.PROJECTS_DB_ID;
 const HOUSE_PROJECTS_DB_ID = process.env.HOUSE_PROJECTS_DB_ID;
 const BRIEF_PAGE_ID = process.env.BRIEF_PAGE_ID;
 
+// Debug: log environment variables
+console.log("Environment check:");
+console.log("CALENDAR_DB_ID:", CALENDAR_DB_ID ? "✓" : "undefined");
+console.log("TASKS_DB_ID:", TASKS_DB_ID ? "✓" : "undefined");
+console.log("SERVICES_EVENTS_DB_ID:", SERVICES_EVENTS_DB_ID ? "✓" : "undefined");
+console.log("PROJECTS_DB_ID:", PROJECTS_DB_ID ? "✓" : "undefined");
+console.log("HOUSE_PROJECTS_DB_ID:", HOUSE_PROJECTS_DB_ID ? "✓" : "undefined");
+console.log("BRIEF_PAGE_ID:", BRIEF_PAGE_ID ? "✓" : "undefined");
+
 /**
  * Get the date range for the coming week (Sunday - Saturday)
  * If today is Sunday, use today as start. Otherwise, use next Sunday.
