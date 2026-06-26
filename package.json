@@ -1,0 +1,15 @@
+{
+  "name": "notion-sync",
+  "version": "1.0.0",
+  "description": "Notion automation scripts",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@notionhq/client": "^3.0.0"
+  }
+}
