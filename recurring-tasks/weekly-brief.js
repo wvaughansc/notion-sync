@@ -1,0 +1,390 @@
+const { Client } = require("@notionhq/client");
+
+const notion = new Client({ auth: process.env.NOTION_TOKEN });
+
+// Database IDs from environment
+const CALENDAR_DB_ID = process.env.CALENDAR_DB_ID;
+const TASKS_DB_ID = process.env.TASKS_DB_ID;
+const SERVICES_EVENTS_DB_ID = process.env.SERVICES_EVENTS_DB_ID;
+const PROJECTS_DB_ID = process.env.PROJECTS_DB_ID;
+const HOUSE_PROJECTS_DB_ID = process.env.HOUSE_PROJECTS_DB_ID;
+const BRIEF_PAGE_ID = process.env.BRIEF_PAGE_ID;
+
+/**
+ * Get the date range for the coming week (Sunday - Saturday)
+ * If today is Sunday, use today as start. Otherwise, use next Sunday.
+ */
+function getWeekRange() {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+
+  // If today is Sunday (0), use today. Otherwise, calculate next Sunday.
+  let weekStart = new Date(today);
+  if (dayOfWeek !== 0) {
+    weekStart.setDate(today.getDate() + (7 - dayOfWeek));
+  }
+
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6); // Saturday
+
+  return { weekStart, weekEnd };
+}
+
+/**
+ * Query a Notion database for items with a date in the given range
+ * @param {string} databaseId - The Notion database ID
+ * @param {string} dateProperty - The property name to filter by (e.g., "Date", "Due Date")
+ * @param {Date} startDate - Start of range
+ * @param {Date} endDate - End of range
+ * @returns {Promise<Array>} Array of Notion records
+ */
+async function queryDatabaseByDateRange(
+  databaseId,
+  dateProperty,
+  startDate,
+  endDate
+) {
+  const results = [];
+  let hasMore = true;
+  let startCursor = undefined;
+
+  while (hasMore) {
+    const response = await notion.databases.query({
+      database_id: databaseId,
+      filter: {
+        property: dateProperty,
+        date: {
+          on_or_after: startDate.toISOString().split("T")[0],
+          on_or_before: endDate.toISOString().split("T")[0],
+        },
+      },
+      start_cursor: startCursor,
+    });
+
+    results.push(...response.results);
+    hasMore = response.has_more;
+    startCursor = response.next_cursor;
+  }
+
+  return results;
+}
+
+/**
+ * Extract the date from a Notion date property
+ */
+function extractDate(dateValue) {
+  if (!dateValue || !dateValue.date) return null;
+  return new Date(dateValue.date.start);
+}
+
+/**
+ * Get a readable title from a Notion page
+ */
+function getPageTitle(page) {
+  const props = page.properties;
+
+  // Try common title properties in order
+  for (const key of ["Name", "Title", "Task"]) {
+    if (props[key] && props[key].title && props[key].title.length > 0) {
+      return props[key].title.map((t) => t.plain_text).join("");
+    }
+  }
+
+  // Fallback to first rich_text property found
+  for (const key in props) {
+    if (
+      props[key].type === "rich_text" &&
+      props[key].rich_text &&
+      props[key].rich_text.length > 0
+    ) {
+      return props[key].rich_text.map((t) => t.plain_text).join("");
+    }
+  }
+
+  return "Untitled";
+}
+
+/**
+ * Organize items by day of week
+ */
+function organizeByDay(items, dateProperty) {
+  const dayMap = {
+    0: { name: "Sunday", items: [] },
+    1: { name: "Monday", items: [] },
+    2: { name: "Tuesday", items: [] },
+    3: { name: "Wednesday", items: [] },
+    4: { name: "Thursday", items: [] },
+    5: { name: "Friday", items: [] },
+    6: { name: "Saturday", items: [] },
+  };
+
+  items.forEach((item) => {
+    const dateValue = item.properties[dateProperty];
+    const date = extractDate(dateValue);
+
+    if (date) {
+      const dayIndex = date.getDay();
+      dayMap[dayIndex].items.push({
+        title: getPageTitle(item),
+        date,
+        url: item.url,
+      });
+    }
+  });
+
+  // Sort items within each day by time
+  Object.values(dayMap).forEach((day) => {
+    day.items.sort((a, b) => a.date - b.date);
+  });
+
+  return dayMap;
+}
+
+/**
+ * Build Notion blocks for the weekly brief
+ */
+function buildBriefBlocks(allItems, weekStart) {
+  const blocks = [];
+
+  // Header
+  const weekEndDate = new Date(weekStart);
+  weekEndDate.setDate(weekStart.getDate() + 6);
+  const dateRange = `${weekStart.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  })} – ${weekEndDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })}`;
+
+  blocks.push({
+    object: "block",
+    type: "heading_1",
+    heading_1: {
+      rich_text: [
+        {
+          type: "text",
+          text: `Weekly Brief: ${dateRange}`,
+        },
+      ],
+    },
+  });
+
+  blocks.push({
+    object: "block",
+    type: "divider",
+    divider: {},
+  });
+
+  // Iterate through each day and build sections
+  const dayOfWeek = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const dayIndex = weekStart.getDay();
+
+  for (let i = 0; i < 7; i++) {
+    const dayDate = new Date(weekStart);
+    dayDate.setDate(weekStart.getDate() + i);
+    const dayName = dayOfWeek[(dayIndex + i) % 7];
+
+    // Collect all items for this day
+    const dayItems = [];
+
+    for (const [source, organized] of Object.entries(allItems)) {
+      const dateIndex = dayDate.getDay();
+      if (organized[dateIndex] && organized[dateIndex].items.length > 0) {
+        dayItems.push({
+          source,
+          items: organized[dateIndex].items,
+        });
+      }
+    }
+
+    // Only add day section if there are items
+    if (dayItems.length > 0) {
+      // Day heading with date
+      blocks.push({
+        object: "block",
+        type: "heading_2",
+        heading_2: {
+          rich_text: [
+            {
+              type: "text",
+              text: `${dayName}, ${dayDate.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              })}`,
+            },
+          ],
+        },
+      });
+
+      // Items for this day, grouped by source
+      dayItems.forEach(({ source, items }) => {
+        // Source subheading
+        blocks.push({
+          object: "block",
+          type: "heading_3",
+          heading_3: {
+            rich_text: [
+              {
+                type: "text",
+                text: source,
+              },
+            ],
+          },
+        });
+
+        // List items
+        items.forEach((item) => {
+          blocks.push({
+            object: "block",
+            type: "bulleted_list_item",
+            bulleted_list_item: {
+              rich_text: [
+                {
+                  type: "text",
+                  text: item.title,
+                  href: item.url,
+                },
+              ],
+            },
+          });
+        });
+      });
+
+      blocks.push({
+        object: "block",
+        type: "divider",
+        divider: {},
+      });
+    }
+  }
+
+  return blocks;
+}
+
+/**
+ * Clear all blocks from a page
+ */
+async function clearPageBlocks(pageId) {
+  const page = await notion.blocks.retrieve({ block_id: pageId });
+  const blocks = await notion.blocks.children.list({ block_id: pageId });
+
+  for (const block of blocks.results) {
+    try {
+      await notion.blocks.delete({ block_id: block.id });
+    } catch (error) {
+      console.error(`Failed to delete block ${block.id}:`, error.message);
+    }
+  }
+}
+
+/**
+ * Append blocks to a page
+ */
+async function appendBlocksToPage(pageId, blocks) {
+  // Notion API has a limit of 100 blocks per request, so batch them
+  const batchSize = 100;
+
+  for (let i = 0; i < blocks.length; i += batchSize) {
+    const batch = blocks.slice(i, i + batchSize);
+    await notion.blocks.children.append({
+      block_id: pageId,
+      children: batch,
+    });
+  }
+}
+
+/**
+ * Main function
+ */
+async function buildWeeklyBrief() {
+  console.log("Starting weekly brief generation...");
+
+  const { weekStart, weekEnd } = getWeekRange();
+  console.log(
+    `Week range: ${weekStart.toDateString()} - ${weekEnd.toDateString()}`
+  );
+
+  try {
+    // Query all databases
+    console.log("Querying databases...");
+
+    const calendarItems = await queryDatabaseByDateRange(
+      CALENDAR_DB_ID,
+      "Date",
+      weekStart,
+      weekEnd
+    );
+    console.log(`Found ${calendarItems.length} calendar items`);
+
+    const taskItems = await queryDatabaseByDateRange(
+      TASKS_DB_ID,
+      "Due Date",
+      weekStart,
+      weekEnd
+    );
+    console.log(`Found ${taskItems.length} task items`);
+
+    const servicesItems = await queryDatabaseByDateRange(
+      SERVICES_EVENTS_DB_ID,
+      "Date",
+      weekStart,
+      weekEnd
+    );
+    console.log(`Found ${servicesItems.length} services/events items`);
+
+    const projectItems = await queryDatabaseByDateRange(
+      PROJECTS_DB_ID,
+      "Due Date",
+      weekStart,
+      weekEnd
+    );
+    console.log(`Found ${projectItems.length} project items`);
+
+    const houseProjectItems = await queryDatabaseByDateRange(
+      HOUSE_PROJECTS_DB_ID,
+      "Planned Date",
+      weekStart,
+      weekEnd
+    );
+    console.log(`Found ${houseProjectItems.length} house project items`);
+
+    // Organize by day
+    console.log("Organizing by day...");
+    const allItems = {
+      Calendar: organizeByDay(calendarItems, "Date"),
+      Tasks: organizeByDay(taskItems, "Due Date"),
+      Services: organizeByDay(servicesItems, "Date"),
+      Projects: organizeByDay(projectItems, "Due Date"),
+      "House Projects": organizeByDay(houseProjectItems, "Due Date"),
+    };
+
+    // Build blocks
+    console.log("Building brief blocks...");
+    const blocks = buildBriefBlocks(allItems, weekStart);
+
+    // Update page
+    console.log("Clearing existing blocks...");
+    await clearPageBlocks(BRIEF_PAGE_ID);
+
+    console.log("Appending new blocks...");
+    await appendBlocksToPage(BRIEF_PAGE_ID, blocks);
+
+    console.log("Weekly brief generated successfully!");
+  } catch (error) {
+    console.error("Error building weekly brief:", error);
+    throw error;
+  }
+}
+
+// Run it
+buildWeeklyBrief();
