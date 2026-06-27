@@ -2,6 +2,7 @@
   "name": "notion-sync",
   "version": "1.0.0",
   "description": "Notion automation scripts",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -10,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@notionhq/client": "^3.0.0"
+    "@notionhq/client": "^3.0.0",
+    "googleapis": "^118.0.0"
   }
 }
