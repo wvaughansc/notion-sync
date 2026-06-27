@@ -12,4 +12,11 @@
   "dependencies": {
     "@notionhq/client": "^3.0.0"
   }
+  {
+  "type": "module",
+  "dependencies": {
+    "googleapis": "^latest",
+    "open": "^latest"
+  }
+}
 }
