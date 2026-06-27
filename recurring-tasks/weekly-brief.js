@@ -58,22 +58,23 @@ async function queryDatabaseByDateRange(
   let startCursor = undefined;
 
   while (hasMore) {
-    // Format dates as local dates (not UTC) for Notion API
-    const formatLocalDate = (date) => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    };
-
     const response = await notion.databases.query({
       database_id: databaseId,
       filter: {
-        property: dateProperty,
-        date: {
-          on_or_after: formatLocalDate(startDate),
-          on_or_before: formatLocalDate(endDate),
-        },
+        and: [
+          {
+            property: dateProperty,
+            date: {
+              on_or_after: startDate.toISOString().split("T")[0],
+            },
+          },
+          {
+            property: dateProperty,
+            date: {
+              on_or_before: endDate.toISOString().split("T")[0],
+            },
+          },
+        ],
       },
       start_cursor: startCursor,
     });
