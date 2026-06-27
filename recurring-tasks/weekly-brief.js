@@ -20,21 +20,26 @@ console.log("HOUSE_PROJECTS_DB_ID:", HOUSE_PROJECTS_DB_ID ? "✓" : "undefined")
 console.log("BRIEF_PAGE_ID:", BRIEF_PAGE_ID ? "✓" : "undefined");
 
 /**
- * Get the date range for the coming week (Sunday - Saturday)
- * If today is Sunday, use today as start. Otherwise, use next Sunday.
+ * Get the date range for the coming week (Monday - Sunday)
+ * If today is Monday, use today as start. Otherwise, use next Monday.
  */
 function getWeekRange() {
   const today = new Date();
   const dayOfWeek = today.getDay();
 
-  // If today is Sunday (0), use today. Otherwise, calculate next Sunday.
   let weekStart = new Date(today);
-  if (dayOfWeek !== 0) {
-    weekStart.setDate(today.getDate() + (7 - dayOfWeek));
+  
+  if (dayOfWeek === 0) {
+    // Today is Sunday, next Monday
+    weekStart.setDate(today.getDate() + 1);
+  } else if (dayOfWeek > 1) {
+    // Tuesday-Sunday, calculate next Monday
+    weekStart.setDate(today.getDate() + (8 - dayOfWeek));
   }
+  // If Monday (dayOfWeek === 1), use today as-is
 
   const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6); // Saturday
+  weekEnd.setDate(weekStart.getDate() + 6); // Sunday
 
   return { weekStart, weekEnd };
 }
@@ -190,7 +195,7 @@ function organizeByDay(items, dateProperty, filterCompleted = false) {
 /**
  * Build Notion blocks for the weekly brief
  */
-function buildBriefBlocks(allItems, weekStart) {
+function buildBriefBlocks(allItems, weekStart, houseProjectsByDay) {
   const blocks = [];
 
   // Header
@@ -323,6 +328,55 @@ function buildBriefBlocks(allItems, weekStart) {
     }
   }
 
+  // House Projects section (separate from day-by-day)
+  const houseProjectsWithDates = Object.values(houseProjectsByDay)
+    .flatMap((day) => day.items)
+    .filter((item) => item && item.title);
+
+  if (houseProjectsWithDates.length > 0) {
+    blocks.push({
+      object: "block",
+      type: "divider",
+      divider: {},
+    });
+
+    blocks.push({
+      object: "block",
+      type: "heading_2",
+      heading_2: {
+        rich_text: [
+          {
+            type: "text",
+            text: {
+              content: "House Projects",
+            },
+          },
+        ],
+      },
+    });
+
+    houseProjectsWithDates.forEach((item) => {
+      blocks.push({
+        object: "block",
+        type: "bulleted_list_item",
+        bulleted_list_item: {
+          rich_text: [
+            {
+              type: "text",
+              text: {
+                content: `${item.title} (${item.date.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })})`,
+                link: item.url ? { url: item.url } : null,
+              },
+            },
+          ],
+        },
+      });
+    });
+  }
+
   return blocks;
 }
 
@@ -364,21 +418,28 @@ async function appendBlocksToPage(pageId, blocks) {
 async function buildWeeklyBrief() {
   console.log("Starting weekly brief generation...");
 
-  const { weekStart, weekEnd } = getWeekRange();
-  console.log(
-    `Week range: ${weekStart.toDateString()} - ${weekEnd.toDateString()}`
-  );
+    const { weekStart, weekEnd } = getWeekRange();
+    console.log(
+      `Week range: ${weekStart.toDateString()} - ${weekEnd.toDateString()}`
+    );
 
-  // Format for logging
-  const formatLocalDate = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-  console.log(
-    `Querying for dates: ${formatLocalDate(weekStart)} to ${formatLocalDate(weekEnd)}`
-  );
+    // Format for logging
+    const formatLocalDate = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+    console.log(
+      `Querying for dates: ${formatLocalDate(weekStart)} to ${formatLocalDate(weekEnd)}`
+    );
+
+    // Calculate extended ranges
+    const today = new Date();
+    const twoWeeksOut = new Date(today);
+    twoWeeksOut.setDate(today.getDate() + 14);
+    const oneMonthOut = new Date(today);
+    oneMonthOut.setDate(today.getDate() + 30);
 
   try {
     // Query all databases
@@ -438,45 +499,51 @@ async function buildWeeklyBrief() {
       console.error("Failed to query Services/Events DB:", error.message);
     }
 
-    // Query Projects DB
-    try {
-      projectItems = await queryDatabaseByDateRange(
-        PROJECTS_DB_ID,
-        "Due Date",
-        weekStart,
-        weekEnd
-      );
-      console.log(`Found ${projectItems.length} project items`);
-    } catch (error) {
-      console.error("Failed to query Projects DB:", error.message);
-    }
-
-    // Query House Projects DB
+    // Query House Projects DB (next 2 weeks)
     try {
       houseProjectItems = await queryDatabaseByDateRange(
         HOUSE_PROJECTS_DB_ID,
         "Planned Date",
-        weekStart,
-        weekEnd
+        today,
+        twoWeeksOut
       );
       console.log(`Found ${houseProjectItems.length} house project items`);
     } catch (error) {
       console.error("Failed to query House Projects DB:", error.message);
     }
 
-    // Organize by day
+    // Query Projects DB (next 1 month)
+    try {
+      projectItems = await queryDatabaseByDateRange(
+        PROJECTS_DB_ID,
+        "Due Date",
+        today,
+        oneMonthOut
+      );
+      console.log(`Found ${projectItems.length} project items`);
+    } catch (error) {
+      console.error("Failed to query Projects DB:", error.message);
+    }
+
+    // Organize by day (excluding house projects - they get their own section)
     console.log("Organizing by day...");
     const allItems = {
       Calendar: organizeByDay(calendarItems, "Date", false),
       Tasks: organizeByDay(taskItems, "Due Date", true),
       Services: organizeByDay(servicesItems, "Date", false),
       Projects: organizeByDay(projectItems, "Due Date", false),
-      "House Projects": organizeByDay(houseProjectItems, "Planned Date", false),
     };
+
+    // Organize house projects separately (by date, with dates only)
+    const houseProjectsByDay = organizeByDay(
+      houseProjectItems.filter((item) => item.properties["Planned Date"]?.date),
+      "Planned Date",
+      false
+    );
 
     // Build blocks
     console.log("Building brief blocks...");
-    const blocks = buildBriefBlocks(allItems, weekStart);
+    const blocks = buildBriefBlocks(allItems, weekStart, houseProjectsByDay);
 
     // Update page
     console.log("Clearing existing blocks...");
