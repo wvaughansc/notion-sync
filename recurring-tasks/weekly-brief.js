@@ -78,6 +78,9 @@ async function queryDatabaseByDateRange(
       start_cursor: startCursor,
     });
 
+    console.log(
+      `Query returned ${response.results.length} results (has_more: ${response.has_more})`
+    );
     results.push(...response.results);
     hasMore = response.has_more;
     startCursor = response.next_cursor;
@@ -408,6 +411,15 @@ async function buildWeeklyBrief() {
         weekEnd
       );
       console.log(`Found ${taskItems.length} task items`);
+      // Debug: show first 3 tasks and their dates
+      if (taskItems.length > 0) {
+        console.log("Sample tasks:");
+        taskItems.slice(0, 3).forEach((item) => {
+          const title = getPageTitle(item);
+          const dueDate = item.properties["Due Date"]?.date?.start || "no date";
+          console.log(`  - ${title}: ${dueDate}`);
+        });
+      }
     } catch (error) {
       console.error("Failed to query Tasks DB:", error.message);
     }
