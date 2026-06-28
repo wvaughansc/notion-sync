@@ -388,6 +388,119 @@ function buildBriefBlocks(allItems, weekStart, houseProjectsByDay, projectItems,
   console.log(`Undated projects: ${undatedProjects.length}`);
   console.log(`Undated house projects: ${undatedHouseProjects.length}`);
 
+  // Planned items (with dates outside the current week)
+  const plannedProjects = projectItems.filter(
+    (item) => {
+      const date = extractDate(item.properties["Date"]);
+      const today = new Date();
+      const oneMonthOut = new Date(today);
+      oneMonthOut.setDate(today.getDate() + 30);
+      return date && date >= today && date <= oneMonthOut && (date < weekStart || date > weekEnd);
+    }
+  );
+
+  const plannedHouseProjects = houseProjectItems.filter(
+    (item) => {
+      const date = extractDate(item.properties["Planned Date"]);
+      const today = new Date();
+      const twoWeeksOut = new Date(today);
+      twoWeeksOut.setDate(today.getDate() + 14);
+      return date && date >= today && date <= twoWeeksOut && (date < weekStart || date > weekEnd);
+    }
+  );
+
+  // Planned House Projects section
+  if (plannedHouseProjects.length > 0) {
+    blocks.push({
+      object: "block",
+      type: "divider",
+      divider: {},
+    });
+
+    blocks.push({
+      object: "block",
+      type: "heading_2",
+      heading_2: {
+        rich_text: [
+          {
+            type: "text",
+            text: {
+              content: "Planned House Projects",
+            },
+          },
+        ],
+      },
+    });
+
+    plannedHouseProjects.forEach((item) => {
+      const date = extractDate(item.properties["Planned Date"]);
+      blocks.push({
+        object: "block",
+        type: "bulleted_list_item",
+        bulleted_list_item: {
+          rich_text: [
+            {
+              type: "text",
+              text: {
+                content: `${getPageTitle(item)} (${date.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })})`,
+                link: item.url ? { url: item.url } : null,
+              },
+            },
+          ],
+        },
+      });
+    });
+  }
+
+  // Planned Projects section
+  if (plannedProjects.length > 0) {
+    blocks.push({
+      object: "block",
+      type: "divider",
+      divider: {},
+    });
+
+    blocks.push({
+      object: "block",
+      type: "heading_2",
+      heading_2: {
+        rich_text: [
+          {
+            type: "text",
+            text: {
+              content: "Planned Projects",
+            },
+          },
+        ],
+      },
+    });
+
+    plannedProjects.forEach((item) => {
+      const date = extractDate(item.properties["Date"]);
+      blocks.push({
+        object: "block",
+        type: "bulleted_list_item",
+        bulleted_list_item: {
+          rich_text: [
+            {
+              type: "text",
+              text: {
+                content: `${getPageTitle(item)} (${date.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })})`,
+                link: item.url ? { url: item.url } : null,
+              },
+            },
+          ],
+        },
+      });
+    });
+  }
+
   // Unplanned House Projects section
   if (undatedHouseProjects.length > 0) {
     blocks.push({
@@ -623,18 +736,18 @@ async function buildWeeklyBrief() {
     // Organize by day (excluding house projects - they get their own section)
     console.log("Organizing by day...");
     
-    // Filter projects with dates in range for day-by-day view
+    // Filter projects with dates in the week range for day-by-day view
     const datedProjects = projectItems.filter(
       (item) => {
         const date = extractDate(item.properties["Date"]);
-        return date && date >= today && date <= oneMonthOut;
+        return date && date >= weekStart && date <= weekEnd;
       }
     );
     
     const datedHouseProjects = houseProjectItems.filter(
       (item) => {
         const date = extractDate(item.properties["Planned Date"]);
-        return date && date >= today && date <= twoWeeksOut;
+        return date && date >= weekStart && date <= weekEnd;
       }
     );
     
