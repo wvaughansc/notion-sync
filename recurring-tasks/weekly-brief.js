@@ -379,7 +379,7 @@ function buildBriefBlocks(allItems, weekStart, houseProjectsByDay, projectItems,
 
   // Undated Projects and House Projects section
   const undatedProjects = projectItems.filter(
-    (item) => !item.properties["Due Date"]?.date
+    (item) => !item.properties["Date"]?.date
   );
   const undatedHouseProjects = houseProjectItems.filter(
     (item) => !item.properties["Planned Date"]?.date
