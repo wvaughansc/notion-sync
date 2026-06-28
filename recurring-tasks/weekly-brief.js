@@ -377,6 +377,101 @@ function buildBriefBlocks(allItems, weekStart, houseProjectsByDay) {
     });
   }
 
+  // Undated Projects and House Projects section
+  const undatedProjects = projectItems.filter(
+    (item) => !item.properties["Due Date"]?.date
+  );
+  const undatedHouseProjects = houseProjectItems.filter(
+    (item) => !item.properties["Planned Date"]?.date
+  );
+
+  if (undatedProjects.length > 0 || undatedHouseProjects.length > 0) {
+    blocks.push({
+      object: "block",
+      type: "heading_2",
+      heading_2: {
+        rich_text: [
+          {
+            type: "text",
+            text: {
+              content: "No Due Date",
+            },
+          },
+        ],
+      },
+    });
+
+    if (undatedProjects.length > 0) {
+      blocks.push({
+        object: "block",
+        type: "heading_3",
+        heading_3: {
+          rich_text: [
+            {
+              type: "text",
+              text: {
+                content: "Projects",
+              },
+            },
+          ],
+        },
+      });
+
+      undatedProjects.forEach((item) => {
+        blocks.push({
+          object: "block",
+          type: "bulleted_list_item",
+          bulleted_list_item: {
+            rich_text: [
+              {
+                type: "text",
+                text: {
+                  content: getPageTitle(item),
+                  link: item.url ? { url: item.url } : null,
+                },
+              },
+            ],
+          },
+        });
+      });
+    }
+
+    if (undatedHouseProjects.length > 0) {
+      blocks.push({
+        object: "block",
+        type: "heading_3",
+        heading_3: {
+          rich_text: [
+            {
+              type: "text",
+              text: {
+                content: "House Projects",
+              },
+            },
+          ],
+        },
+      });
+
+      undatedHouseProjects.forEach((item) => {
+        blocks.push({
+          object: "block",
+          type: "bulleted_list_item",
+          bulleted_list_item: {
+            rich_text: [
+              {
+                type: "text",
+                text: {
+                  content: getPageTitle(item),
+                  link: item.url ? { url: item.url } : null,
+                },
+              },
+            ],
+          },
+        });
+      });
+    }
+  }
+
   return blocks;
 }
 
@@ -514,6 +609,7 @@ async function buildWeeklyBrief() {
 
     // Query Projects DB (next 1 month)
     try {
+      console.log(`Attempting to query Projects DB: ${PROJECTS_DB_ID}`);
       projectItems = await queryDatabaseByDateRange(
         PROJECTS_DB_ID,
         "Due Date",
@@ -523,6 +619,8 @@ async function buildWeeklyBrief() {
       console.log(`Found ${projectItems.length} project items`);
     } catch (error) {
       console.error("Failed to query Projects DB:", error.message);
+      console.error("Projects DB ID:", PROJECTS_DB_ID);
+      console.error("Full error:", error);
     }
 
     // Organize by day (excluding house projects - they get their own section)
