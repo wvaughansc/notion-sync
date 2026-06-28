@@ -536,15 +536,16 @@ async function buildWeeklyBrief() {
     const oneMonthOut = new Date(today);
     oneMonthOut.setDate(today.getDate() + 30);
 
-  try {
-    // Query all databases
-    console.log("Querying databases...");
-
+    // Declare variables before try block so they're in scope for buildBriefBlocks
     let calendarItems = [];
     let taskItems = [];
     let servicesItems = [];
     let projectItems = [];
     let houseProjectItems = [];
+
+  try {
+    // Query all databases
+    console.log("Querying databases...");
 
     // Query Calendar DB
     try {
