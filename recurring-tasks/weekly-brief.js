@@ -612,7 +612,7 @@ async function buildWeeklyBrief() {
       console.log(`Attempting to query Projects DB: ${PROJECTS_DB_ID}`);
       projectItems = await queryDatabaseByDateRange(
         PROJECTS_DB_ID,
-        "Due Date",
+        "Date",
         today,
         oneMonthOut
       );
@@ -629,7 +629,7 @@ async function buildWeeklyBrief() {
       Calendar: organizeByDay(calendarItems, "Date", false),
       Tasks: organizeByDay(taskItems, "Due Date", true),
       Services: organizeByDay(servicesItems, "Date", false),
-      Projects: organizeByDay(projectItems, "Due Date", false),
+      Projects: organizeByDay(projectItems, "Date", false),
     };
 
     // Organize house projects separately (by date, with dates only)
