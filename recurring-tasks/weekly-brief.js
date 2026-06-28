@@ -195,7 +195,7 @@ function organizeByDay(items, dateProperty, filterCompleted = false) {
 /**
  * Build Notion blocks for the weekly brief
  */
-function buildBriefBlocks(allItems, weekStart, houseProjectsByDay) {
+function buildBriefBlocks(allItems, weekStart, houseProjectsByDay, projectItems, houseProjectItems) {
   const blocks = [];
 
   // Header
@@ -642,7 +642,7 @@ async function buildWeeklyBrief() {
 
     // Build blocks
     console.log("Building brief blocks...");
-    const blocks = buildBriefBlocks(allItems, weekStart, houseProjectsByDay);
+    const blocks = buildBriefBlocks(allItems, weekStart, houseProjectsByDay, projectItems, houseProjectItems);
 
     // Update page
     console.log("Clearing existing blocks...");
