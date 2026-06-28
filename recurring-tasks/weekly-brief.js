@@ -377,7 +377,7 @@ function buildBriefBlocks(allItems, weekStart, houseProjectsByDay, projectItems,
     });
   }
 
-  // Undated Projects and House Projects section
+  // Unplanned items section
   const undatedProjects = projectItems.filter(
     (item) => !item.properties["Date"]?.date
   );
@@ -385,7 +385,17 @@ function buildBriefBlocks(allItems, weekStart, houseProjectsByDay, projectItems,
     (item) => !item.properties["Planned Date"]?.date
   );
 
-  if (undatedProjects.length > 0 || undatedHouseProjects.length > 0) {
+  console.log(`Undated projects: ${undatedProjects.length}`);
+  console.log(`Undated house projects: ${undatedHouseProjects.length}`);
+
+  // Unplanned House Projects section
+  if (undatedHouseProjects.length > 0) {
+    blocks.push({
+      object: "block",
+      type: "divider",
+      divider: {},
+    });
+
     blocks.push({
       object: "block",
       type: "heading_2",
@@ -394,82 +404,72 @@ function buildBriefBlocks(allItems, weekStart, houseProjectsByDay, projectItems,
           {
             type: "text",
             text: {
-              content: "No Due Date",
+              content: "Unplanned House Projects",
             },
           },
         ],
       },
     });
 
-    if (undatedProjects.length > 0) {
+    undatedHouseProjects.forEach((item) => {
       blocks.push({
         object: "block",
-        type: "heading_3",
-        heading_3: {
+        type: "bulleted_list_item",
+        bulleted_list_item: {
           rich_text: [
             {
               type: "text",
               text: {
-                content: "Projects",
+                content: getPageTitle(item),
+                link: item.url ? { url: item.url } : null,
               },
             },
           ],
         },
       });
+    });
+  }
 
-      undatedProjects.forEach((item) => {
-        blocks.push({
-          object: "block",
-          type: "bulleted_list_item",
-          bulleted_list_item: {
-            rich_text: [
-              {
-                type: "text",
-                text: {
-                  content: getPageTitle(item),
-                  link: item.url ? { url: item.url } : null,
-                },
-              },
-            ],
+  // Unplanned Projects section
+  if (undatedProjects.length > 0) {
+    blocks.push({
+      object: "block",
+      type: "divider",
+      divider: {},
+    });
+
+    blocks.push({
+      object: "block",
+      type: "heading_2",
+      heading_2: {
+        rich_text: [
+          {
+            type: "text",
+            text: {
+              content: "Unplanned Projects",
+            },
           },
-        });
-      });
-    }
+        ],
+      },
+    });
 
-    if (undatedHouseProjects.length > 0) {
+    undatedProjects.forEach((item) => {
       blocks.push({
         object: "block",
-        type: "heading_3",
-        heading_3: {
+        type: "bulleted_list_item",
+        bulleted_list_item: {
           rich_text: [
             {
               type: "text",
               text: {
-                content: "House Projects",
+                content: getPageTitle(item),
+                link: item.url ? { url: item.url } : null,
               },
             },
           ],
         },
       });
-
-      undatedHouseProjects.forEach((item) => {
-        blocks.push({
-          object: "block",
-          type: "bulleted_list_item",
-          bulleted_list_item: {
-            rich_text: [
-              {
-                type: "text",
-                text: {
-                  content: getPageTitle(item),
-                  link: item.url ? { url: item.url } : null,
-                },
-              },
-            ],
-          },
-        });
-      });
-    }
+    });
   }
 
   return blocks;
@@ -595,29 +595,25 @@ async function buildWeeklyBrief() {
       console.error("Failed to query Services/Events DB:", error.message);
     }
 
-    // Query House Projects DB (next 2 weeks)
+    // Query House Projects DB (all items, not just with dates)
     try {
-      houseProjectItems = await queryDatabaseByDateRange(
-        HOUSE_PROJECTS_DB_ID,
-        "Planned Date",
-        today,
-        twoWeeksOut
-      );
-      console.log(`Found ${houseProjectItems.length} house project items`);
+      const allHouseProjects = await notion.databases.query({
+        database_id: HOUSE_PROJECTS_DB_ID,
+      });
+      houseProjectItems = allHouseProjects.results;
+      console.log(`Found ${houseProjectItems.length} total house project items`);
     } catch (error) {
       console.error("Failed to query House Projects DB:", error.message);
     }
 
-    // Query Projects DB (next 1 month)
+    // Query Projects DB (all items, not just with dates)
     try {
       console.log(`Attempting to query Projects DB: ${PROJECTS_DB_ID}`);
-      projectItems = await queryDatabaseByDateRange(
-        PROJECTS_DB_ID,
-        "Date",
-        today,
-        oneMonthOut
-      );
-      console.log(`Found ${projectItems.length} project items`);
+      const allProjects = await notion.databases.query({
+        database_id: PROJECTS_DB_ID,
+      });
+      projectItems = allProjects.results;
+      console.log(`Found ${projectItems.length} total project items`);
     } catch (error) {
       console.error("Failed to query Projects DB:", error.message);
       console.error("Projects DB ID:", PROJECTS_DB_ID);
@@ -626,16 +622,32 @@ async function buildWeeklyBrief() {
 
     // Organize by day (excluding house projects - they get their own section)
     console.log("Organizing by day...");
+    
+    // Filter projects with dates in range for day-by-day view
+    const datedProjects = projectItems.filter(
+      (item) => {
+        const date = extractDate(item.properties["Date"]);
+        return date && date >= today && date <= oneMonthOut;
+      }
+    );
+    
+    const datedHouseProjects = houseProjectItems.filter(
+      (item) => {
+        const date = extractDate(item.properties["Planned Date"]);
+        return date && date >= today && date <= twoWeeksOut;
+      }
+    );
+    
     const allItems = {
       Calendar: organizeByDay(calendarItems, "Date", false),
       Tasks: organizeByDay(taskItems, "Due Date", true),
       Services: organizeByDay(servicesItems, "Date", false),
-      Projects: organizeByDay(projectItems, "Date", false),
+      Projects: organizeByDay(datedProjects, "Date", false),
     };
 
-    // Organize house projects separately (by date, with dates only)
+    // Organize dated house projects separately (by date, with dates only)
     const houseProjectsByDay = organizeByDay(
-      houseProjectItems.filter((item) => item.properties["Planned Date"]?.date),
+      datedHouseProjects.filter((item) => item.properties["Planned Date"]?.date),
       "Planned Date",
       false
     );
