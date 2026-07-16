@@ -136,7 +136,7 @@ time: "14:00",
 if (dayOfMonth === 15) {
 addTask({
 taskName: "Send Blockout Email",
-area: "QA",
+area: "Church",
 priority: "High",
 });
 }
@@ -144,7 +144,7 @@ priority: "High",
 if (dayOfMonth === 16) {
 addTask({
 taskName: "Greer Schedule",
-area: "QA",
+area: "Church",
 priority: "High",
 });
 }
