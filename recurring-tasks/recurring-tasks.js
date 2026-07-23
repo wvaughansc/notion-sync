@@ -33,6 +33,7 @@ const tasksToCreate = [];
   priority,
   status = "Not Done",
   time = null,
+  icon = "📌",
   }) {
   const dueDate = time
   ? `${todayDate}T${time}:00${tzOffset}`
@@ -44,6 +45,7 @@ area,
 priority,
 status,
 dueDate,
+icon,
 });
 }
 
@@ -58,6 +60,7 @@ taskName: "Feed Dogs",
 area: "Personal",
 priority: "High",
 time: "08:00",
+icon: "🐕",
 });
 
 /*                                                                         |
@@ -72,6 +75,7 @@ taskName: "Water Grass",
 area: "Personal",
 priority: "Medium",
 time: "08:00",
+icon: "💦",
 });
 }
 
@@ -87,6 +91,7 @@ taskName: "Timesheet",
 area: "QA",
 priority: "High",
 time: "09:00",
+icon: "🕑",
 });
 
 addTask({
@@ -94,6 +99,7 @@ taskName: "Trash Pickup",
 area: "Personal",
 priority: "Medium",
 time: "21:00",
+icon: "🗑️",
 });
 }
 
@@ -109,6 +115,7 @@ taskName: "Split Songs",
 area: "Church",
 priority: "High",
 time: "14:00",
+icon: "🎤",
 });
 }
 
@@ -124,6 +131,7 @@ taskName: "Update PCO Notes",
 area: "Church",
 priority: "Medium",
 time: "14:00",
+icon: "📝",
 });
 }
 
@@ -138,6 +146,7 @@ addTask({
 taskName: "Send Blockout Email",
 area: "Church",
 priority: "High",
+icon: "📨",
 });
 }
 
@@ -146,6 +155,7 @@ addTask({
 taskName: "Greer Schedule",
 area: "Church",
 priority: "High",
+icon: "🗓️",
 });
 }
 
@@ -169,6 +179,7 @@ addTask({
 taskName: "Change Air Filters",
 area: "Personal",
 priority: "Medium",
+icon: '',
 });
 }
 
@@ -179,7 +190,7 @@ priority: "Medium",
 | */                                                                         
 
 async function createTask(task) {
- console.log(`Attempting to create task with data:`, JSON.stringify(task, null, 2));
+  console.log(`Attempting to create task with data:`, JSON.stringify(task, null, 2));
   try {
     const properties = {
       Tasks: {
@@ -217,10 +228,13 @@ async function createTask(task) {
       parent: {
         database_id: TASKS_DB_ID,
       },
+      icon: {
+        type: "emoji",
+        emoji: task.icon, // Add this
+      },
       properties: properties,
     });
     console.log(`✅ Created: ${task.taskName}`);
-    // Wait 2 seconds between task creations to avoid rate limiting
     await new Promise(resolve => setTimeout(resolve, 2000));
   } catch (error) {
     console.error(`❌ Failed to create ${task.taskName}:`, error.message);
