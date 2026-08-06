@@ -10,6 +10,10 @@ const PROJECTS_DB_ID = process.env.PROJECTS_DB_ID;
 const HOUSE_PROJECTS_DB_ID = process.env.HOUSE_PROJECTS_DB_ID;
 const BRIEF_PAGE_ID = process.env.BRIEF_PAGE_ID;
 
+// Weather API (Open-Meteo - no API key needed)
+const WEATHER_LAT = 34.9004; // Taylors, SC
+const WEATHER_LNG = -82.3382;
+
 // Debug: log environment variables
 console.log("Environment check:");
 console.log("CALENDAR_DB_ID:", CALENDAR_DB_ID ? "✓" : "undefined");
@@ -18,6 +22,67 @@ console.log("SERVICES_EVENTS_DB_ID:", SERVICES_EVENTS_DB_ID ? "✓" : "undefined
 console.log("PROJECTS_DB_ID:", PROJECTS_DB_ID ? "✓" : "undefined");
 console.log("HOUSE_PROJECTS_DB_ID:", HOUSE_PROJECTS_DB_ID ? "✓" : "undefined");
 console.log("BRIEF_PAGE_ID:", BRIEF_PAGE_ID ? "✓" : "undefined");
+
+/**
+ * Fetch weather data for the coming week
+ */
+async function fetchWeather(weekStart, weekEnd) {
+  try {
+    const startDate = weekStart.toISOString().split("T")[0];
+    const endDate = weekEnd.toISOString().split("T")[0];
+
+    const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${WEATHER_LAT}&longitude=${WEATHER_LNG}&start_date=${startDate}&end_date=${endDate}&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=America/Chicago`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (!data.daily) {
+      console.warn("No weather data returned");
+      return {};
+    }
+
+    // Map weather codes to descriptions
+    const weatherCodes = {
+      0: "Clear",
+      1: "Mostly Clear",
+      2: "Partly Cloudy",
+      3: "Overcast",
+      45: "Foggy",
+      48: "Foggy",
+      51: "Light Drizzle",
+      53: "Moderate Drizzle",
+      55: "Heavy Drizzle",
+      61: "Light Rain",
+      63: "Moderate Rain",
+      65: "Heavy Rain",
+      71: "Light Snow",
+      73: "Moderate Snow",
+      75: "Heavy Snow",
+      80: "Light Showers",
+      81: "Moderate Showers",
+      82: "Heavy Showers",
+      85: "Light Snow Showers",
+      86: "Heavy Snow Showers",
+      95: "Thunderstorm",
+      96: "Thunderstorm w/ Hail",
+      99: "Thunderstorm w/ Hail",
+    };
+
+    const weatherByDate = {};
+    data.daily.time.forEach((date, index) => {
+      weatherByDate[date] = {
+        high: data.daily.temperature_2m_max[index],
+        low: data.daily.temperature_2m_min[index],
+        description: weatherCodes[data.daily.weather_code[index]] || "Unknown",
+      };
+    });
+
+    return weatherByDate;
+  } catch (error) {
+    console.error("Failed to fetch weather:", error.message);
+    return {};
+  }
+}
 
 /**
  * Get the date range for the coming week (Monday - Sunday)
@@ -104,6 +169,33 @@ function extractDate(dateValue) {
 }
 
 /**
+ * Extract time string from a Notion date property (if it has a time component)
+ */
+function extractTime(dateValue) {
+  if (!dateValue || !dateValue.date || !dateValue.date.start) return null;
+  
+  const start = dateValue.date.start;
+  // If it contains 'T', it has a time component
+  if (start.includes("T")) {
+    const timePart = start.split("T")[1];
+    // Extract HH:MM from HH:MM:SS or HH:MM
+    return timePart.substring(0, 5);
+  }
+  return null;
+}
+
+/**
+ * Convert 24h time to 12h format
+ */
+function formatTime(timeStr) {
+  if (!timeStr) return null;
+  const [hours, minutes] = timeStr.split(":").map(Number);
+  const period = hours >= 12 ? "PM" : "AM";
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${String(minutes).padStart(2, "0")} ${period}`;
+}
+
+/**
  * Get a readable title from a Notion page
  */
 function getPageTitle(page) {
@@ -152,7 +244,7 @@ function isTaskCompleted(page) {
 }
 
 /**
- * Organize items by day of week
+ * Organize items by day of week, with time for sorting
  */
 function organizeByDay(items, dateProperty, filterCompleted = false) {
   const dayMap = {
@@ -173,20 +265,28 @@ function organizeByDay(items, dateProperty, filterCompleted = false) {
 
     const dateValue = item.properties[dateProperty];
     const date = extractDate(dateValue);
+    const time = extractTime(dateValue);
 
     if (date) {
       const dayIndex = date.getDay();
       dayMap[dayIndex].items.push({
         title: getPageTitle(item),
         date,
+        time,
+        formattedTime: time ? formatTime(time) : null,
         url: item.url,
       });
     }
   });
 
-  // Sort items within each day by time
+  // Sort items within each day by time (nulls go to end)
   Object.values(dayMap).forEach((day) => {
-    day.items.sort((a, b) => a.date - b.date);
+    day.items.sort((a, b) => {
+      if (!a.time && !b.time) return 0;
+      if (!a.time) return 1;
+      if (!b.time) return -1;
+      return a.time.localeCompare(b.time);
+    });
   });
 
   return dayMap;
@@ -195,7 +295,7 @@ function organizeByDay(items, dateProperty, filterCompleted = false) {
 /**
  * Build Notion blocks for the weekly brief
  */
-function buildBriefBlocks(allItems, weekStart, weekEnd, houseProjectsByDay, projectItems, houseProjectItems) {
+function buildBriefBlocks(allItems, weekStart, weekEnd, houseProjectsByDay, projectItems, houseProjectItems, weatherByDate) {
   const blocks = [];
 
   // Header
@@ -247,6 +347,8 @@ function buildBriefBlocks(allItems, weekStart, weekEnd, houseProjectsByDay, proj
     const dayDate = new Date(weekStart);
     dayDate.setDate(weekStart.getDate() + i);
     const dayName = dayOfWeek[(dayIndex + i) % 7];
+    const dateKey = dayDate.toISOString().split("T")[0];
+    const weather = weatherByDate[dateKey];
 
     // Collect all items for this day
     const dayItems = [];
@@ -263,7 +365,16 @@ function buildBriefBlocks(allItems, weekStart, weekEnd, houseProjectsByDay, proj
 
     // Only add day section if there are items
     if (dayItems.length > 0) {
-      // Day heading with date
+      // Day heading with date and weather
+      let dayHeadingText = `${dayName}, ${dayDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      })}`;
+
+      if (weather) {
+        dayHeadingText += ` • ${weather.high}°F / ${weather.low}°F • ${weather.description}`;
+      }
+
       blocks.push({
         object: "block",
         type: "heading_2",
@@ -272,10 +383,7 @@ function buildBriefBlocks(allItems, weekStart, weekEnd, houseProjectsByDay, proj
             {
               type: "text",
               text: {
-                content: `${dayName}, ${dayDate.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}`,
+                content: dayHeadingText,
               },
             },
           ],
@@ -302,6 +410,11 @@ function buildBriefBlocks(allItems, weekStart, weekEnd, houseProjectsByDay, proj
 
         // List items
         items.forEach((item) => {
+          let displayText = item.title;
+          if (item.formattedTime) {
+            displayText += ` • ${item.formattedTime}`;
+          }
+
           blocks.push({
             object: "block",
             type: "bulleted_list_item",
@@ -310,7 +423,7 @@ function buildBriefBlocks(allItems, weekStart, weekEnd, houseProjectsByDay, proj
                 {
                   type: "text",
                   text: {
-                    content: item.title,
+                    content: displayText,
                     link: item.url ? { url: item.url } : null,
                   },
                 },
@@ -631,6 +744,10 @@ async function buildWeeklyBrief() {
       `Week range: ${weekStart.toDateString()} - ${weekEnd.toDateString()}`
     );
 
+    // Fetch weather data
+    console.log("Fetching weather data...");
+    const weatherByDate = await fetchWeather(weekStart, weekEnd);
+
     // Format for logging
     const formatLocalDate = (date) => {
       const year = date.getFullYear();
@@ -767,7 +884,7 @@ async function buildWeeklyBrief() {
 
     // Build blocks
     console.log("Building brief blocks...");
-    const blocks = buildBriefBlocks(allItems, weekStart, weekEnd, houseProjectsByDay, projectItems, houseProjectItems);
+    const blocks = buildBriefBlocks(allItems, weekStart, weekEnd, houseProjectsByDay, projectItems, houseProjectItems, weatherByDate);
 
     // Update page
     console.log("Clearing existing blocks...");
