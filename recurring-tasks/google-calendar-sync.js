@@ -212,7 +212,7 @@ async function syncCalendar(credentials, accountName) {
             },
             Date: {
               date: {
-                start: eventDate.split("T")[0],
+                start: eventDate, // Preserve full datetime (includes time when available)
               },
             },
           },
