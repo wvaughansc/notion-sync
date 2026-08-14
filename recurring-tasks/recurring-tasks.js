@@ -112,7 +112,7 @@ icon: "🗑️",
 if (dayOfWeek === 4) {
 addTask({
 taskName: "Split Songs",
-area: "Church",
+area: "Grace",
 priority: "High",
 time: "14:00",
 icon: "🎤",
@@ -128,7 +128,7 @@ icon: "🎤",
 if (dayOfWeek === 5) {
 addTask({
 taskName: "Update PCO Notes",
-area: "Church",
+area: "Grace",
 priority: "Medium",
 time: "14:00",
 icon: "📝",
@@ -144,7 +144,7 @@ icon: "📝",
 if (dayOfMonth === 15) {
 addTask({
 taskName: "Send Blockout Email",
-area: "Church",
+area: "Grace",
 priority: "High",
 icon: "📨",
 });
@@ -153,7 +153,7 @@ icon: "📨",
 if (dayOfMonth === 16) {
 addTask({
 taskName: "Greer Schedule",
-area: "Church",
+area: "Grace",
 priority: "High",
 icon: "🗓️",
 });
