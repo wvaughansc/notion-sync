@@ -19,3 +19,5 @@ jobs:
         env:
           NOTION_TOKEN: ${{ secrets.TASKS_NOTION_TOKEN }}
           TASKS_DB_ID: ${{ secrets.TASKS_DB_ID }}
+
+#version1
